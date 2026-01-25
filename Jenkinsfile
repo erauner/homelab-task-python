@@ -88,6 +88,10 @@ pipeline {
                         echo "=== Installing uv ==="
                         pip install uv --quiet
 
+                        echo "=== Setting up PATH for uv ==="
+                        export PATH="$HOME/.local/bin:$PATH"
+                        which uv || echo "uv not found in PATH"
+
                         echo "=== Installing dependencies (including dev) ==="
                         uv sync --dev
 
@@ -102,6 +106,7 @@ pipeline {
             steps {
                 container('python') {
                     sh '''
+                        export PATH="$HOME/.local/bin:$PATH"
                         echo "=== Running ruff linter ==="
                         uv run ruff check src/ tests/ || true
 
@@ -116,6 +121,7 @@ pipeline {
             steps {
                 container('python') {
                     sh '''
+                        export PATH="$HOME/.local/bin:$PATH"
                         echo "=== Running tests ==="
                         uv run pytest tests/ -v --tb=short || echo "No tests yet"
                     '''
@@ -127,6 +133,7 @@ pipeline {
             steps {
                 container('python') {
                     sh '''
+                        export PATH="$HOME/.local/bin:$PATH"
                         echo "=== Verifying package build ==="
                         uv build
 
