@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "homelab-taskkit/conditional_check/output",
+  "title": "Conditional Check Output",
+  "description": "Output schema for conditional check task",
+  "type": "object",
+  "properties": {
+    "result": {
+      "type": "boolean",
+      "description": "Whether the condition(s) evaluated to true"
+    },
+    "checks_performed": {
+      "type": "integer",
+      "description": "Number of individual checks performed"
+    },
+    "checks_passed": {
+      "type": "integer",
+      "description": "Number of checks that passed"
+    },
+    "details": {
+      "type": "array",
+      "description": "Details of each check performed",
+      "items": {
+        "type": "object",
+        "properties": {
+          "operator": { "type": "string" },
+          "passed": { "type": "boolean" },
+          "value_type": { "type": "string" }
+        }
+      }
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": ["result", "checks_performed", "checks_passed", "timestamp"]
+}

@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "homelab-taskkit/conditional_check/input",
+  "title": "Conditional Check Input",
+  "description": "Input schema for conditional check task - evaluates conditions for pipeline branching",
+  "type": "object",
+  "properties": {
+    "value": {
+      "description": "The value to check"
+    },
+    "operator": {
+      "type": "string",
+      "enum": ["eq", "ne", "gt", "lt", "gte", "lte", "contains", "startswith", "endswith", "matches", "exists", "empty", "truthy"],
+      "description": "Comparison operator"
+    },
+    "compare_to": {
+      "description": "Value to compare against (not needed for exists/empty/truthy)"
+    },
+    "all_conditions": {
+      "type": "array",
+      "description": "Multiple conditions that must ALL be true (AND logic)",
+      "items": {
+        "type": "object",
+        "properties": {
+          "value": {},
+          "operator": { "type": "string" },
+          "compare_to": {}
+        },
+        "required": ["value", "operator"]
+      }
+    },
+    "any_conditions": {
+      "type": "array",
+      "description": "Multiple conditions where ANY can be true (OR logic)",
+      "items": {
+        "type": "object",
+        "properties": {
+          "value": {},
+          "operator": { "type": "string" },
+          "compare_to": {}
+        },
+        "required": ["value", "operator"]
+      }
+    }
+  }
+}

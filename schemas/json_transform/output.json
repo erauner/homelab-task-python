@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "homelab-taskkit/json_transform/output",
+  "title": "JSON Transform Output",
+  "description": "Output schema for JSON transformation task",
+  "type": "object",
+  "properties": {
+    "result": {
+      "description": "The transformed data"
+    },
+    "input_type": {
+      "type": "string",
+      "description": "Type of input data (dict/list)"
+    },
+    "output_type": {
+      "type": "string",
+      "description": "Type of output data (dict/list)"
+    },
+    "field_count": {
+      "type": "integer",
+      "description": "Number of fields if output is dict"
+    },
+    "item_count": {
+      "type": "integer",
+      "description": "Number of items if output is list"
+    }
+  },
+  "required": ["result", "input_type", "output_type"]
+}

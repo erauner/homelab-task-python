@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "homelab-taskkit/webhook_notify/output",
+  "title": "Webhook Notify Output",
+  "description": "Output schema for webhook notification task",
+  "type": "object",
+  "properties": {
+    "success": {
+      "type": "boolean",
+      "description": "Whether the notification was sent successfully"
+    },
+    "status_code": {
+      "type": "integer",
+      "description": "HTTP status code from webhook"
+    },
+    "webhook_type": {
+      "type": "string",
+      "enum": ["discord", "slack", "unknown"],
+      "description": "Detected webhook type"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When notification was sent"
+    },
+    "message_preview": {
+      "type": "string",
+      "description": "Preview of the sent message"
+    }
+  },
+  "required": ["success", "status_code", "webhook_type", "timestamp"]
+}

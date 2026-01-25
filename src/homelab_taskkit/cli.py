@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 
 import typer
@@ -106,7 +105,6 @@ def schema_cmd(
 
     # Import tasks to populate registry
     import homelab_taskkit.tasks  # noqa: F401
-
     from homelab_taskkit.registry import TaskNotFoundError, get_task
     from homelab_taskkit.schema import load_schema
 
@@ -114,7 +112,7 @@ def schema_cmd(
         task = get_task(task_name)
     except TaskNotFoundError as e:
         console.print(f"[red]Error:[/red] {e}")
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from None
 
     schema_path = Path(schemas_root) / (
         task.input_schema if schema_type == "input" else task.output_schema
@@ -125,7 +123,7 @@ def schema_cmd(
         console.print_json(json.dumps(schema, indent=2))
     except FileNotFoundError:
         console.print(f"[red]Error:[/red] Schema not found: {schema_path}")
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from None
 
 
 def main() -> None:

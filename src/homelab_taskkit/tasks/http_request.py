@@ -63,9 +63,7 @@ def run(inputs: dict[str, Any], deps: Deps) -> dict[str, Any]:
 
         elapsed_ms = response.elapsed.total_seconds() * 1000
 
-        deps.logger.info(
-            f"Response: {response.status_code} in {elapsed_ms:.2f}ms"
-        )
+        deps.logger.info(f"Response: {response.status_code} in {elapsed_ms:.2f}ms")
 
         return {
             "status_code": response.status_code,

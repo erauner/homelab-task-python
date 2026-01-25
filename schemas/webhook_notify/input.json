@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "homelab-taskkit/webhook_notify/input",
+  "title": "Webhook Notify Input",
+  "description": "Input schema for webhook notification task (Discord/Slack compatible)",
+  "type": "object",
+  "properties": {
+    "webhook_url": {
+      "type": "string",
+      "format": "uri",
+      "description": "Webhook URL (Discord or Slack)"
+    },
+    "message": {
+      "type": "string",
+      "description": "Message text to send"
+    },
+    "title": {
+      "type": "string",
+      "description": "Optional title for embed/attachment"
+    },
+    "color": {
+      "type": "string",
+      "description": "Hex color for embed (e.g., '#00ff00' for success, '#ff0000' for error)",
+      "pattern": "^#[0-9a-fA-F]{6}$"
+    },
+    "fields": {
+      "type": "array",
+      "description": "Additional fields to display",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "value": { "type": "string" },
+          "inline": { "type": "boolean", "default": false }
+        },
+        "required": ["name", "value"]
+      },
+      "default": []
+    },
+    "username": {
+      "type": "string",
+      "description": "Override bot username",
+      "default": "Homelab Tasks"
+    },
+    "avatar_url": {
+      "type": "string",
+      "format": "uri",
+      "description": "Override bot avatar URL"
+    }
+  },
+  "required": ["webhook_url", "message"]
+}

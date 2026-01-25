@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterator, Mapping
 from contextlib import contextmanager
 from dataclasses import dataclass
-from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Iterator
+from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 
 import httpx
 
@@ -66,7 +66,7 @@ def build_deps(
     try:
         yield Deps(
             http=http_client,
-            now=lambda: datetime.now(timezone.utc),
+            now=lambda: datetime.now(UTC),
             env=env,
             logger=logging.getLogger("homelab_taskkit.task"),
         )

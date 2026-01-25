@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "homelab-taskkit/json_transform/input",
+  "title": "JSON Transform Input",
+  "description": "Input schema for JSON transformation task",
+  "type": "object",
+  "properties": {
+    "data": {
+      "description": "The input data to transform (dict or array)",
+      "oneOf": [
+        { "type": "object" },
+        { "type": "array" }
+      ]
+    },
+    "mappings": {
+      "type": "object",
+      "description": "Field mappings using dot notation {output_field: input_path}",
+      "additionalProperties": { "type": "string" },
+      "default": {}
+    },
+    "filter_expr": {
+      "type": "string",
+      "description": "Filter expression for arrays: field.operator.value (operators: eq, ne, gt, lt, gte, lte, contains, startswith, endswith)"
+    },
+    "merge_with": {
+      "type": "object",
+      "description": "Additional data to merge with the result",
+      "default": {}
+    },
+    "wrap_key": {
+      "type": "string",
+      "description": "Optional key to wrap the result in"
+    }
+  },
+  "required": ["data"]
+}
