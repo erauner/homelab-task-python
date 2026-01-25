@@ -9,6 +9,7 @@ WORKDIR /app
 
 # Copy dependency files first for better caching
 COPY pyproject.toml .
+COPY README.md .
 COPY uv.lock* .
 
 # Install dependencies into a virtual environment

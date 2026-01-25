@@ -88,8 +88,8 @@ pipeline {
                         echo "=== Installing uv ==="
                         pip install uv --quiet
 
-                        echo "=== Installing dependencies ==="
-                        uv sync
+                        echo "=== Installing dependencies (including dev) ==="
+                        uv sync --dev
 
                         echo "=== Python version ==="
                         python --version
