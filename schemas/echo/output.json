@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/erauner12/homelab-task-python/schemas/echo/output.json",
+  "title": "Echo Task Output",
+  "description": "Output schema for the echo task",
+  "type": "object",
+  "properties": {
+    "echoed_message": {
+      "type": "string",
+      "description": "The echoed message"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when the echo was processed"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Pass-through metadata from input",
+      "additionalProperties": true
+    }
+  },
+  "required": ["echoed_message", "timestamp", "metadata"],
+  "additionalProperties": false
+}

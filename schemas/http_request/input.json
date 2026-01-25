@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/erauner12/homelab-task-python/schemas/http_request/input.json",
+  "title": "HTTP Request Task Input",
+  "description": "Input schema for the http_request task",
+  "type": "object",
+  "properties": {
+    "url": {
+      "type": "string",
+      "format": "uri",
+      "description": "The URL to request"
+    },
+    "method": {
+      "type": "string",
+      "enum": ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"],
+      "default": "GET",
+      "description": "HTTP method to use"
+    },
+    "headers": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "Request headers"
+    },
+    "body": {
+      "description": "Request body (for POST/PUT/PATCH)"
+    },
+    "timeout": {
+      "type": "number",
+      "minimum": 0.1,
+      "maximum": 300,
+      "default": 30,
+      "description": "Request timeout in seconds"
+    }
+  },
+  "required": ["url"],
+  "additionalProperties": false
+}

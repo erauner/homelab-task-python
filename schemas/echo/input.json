@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/erauner12/homelab-task-python/schemas/echo/input.json",
+  "title": "Echo Task Input",
+  "description": "Input schema for the echo task",
+  "type": "object",
+  "properties": {
+    "message": {
+      "type": "string",
+      "description": "The message to echo back",
+      "minLength": 1
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Optional metadata to pass through",
+      "additionalProperties": true
+    }
+  },
+  "required": ["message"],
+  "additionalProperties": false
+}
