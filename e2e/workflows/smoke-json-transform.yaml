@@ -1,0 +1,115 @@
+# Smoke test: json_transform task
+# Tests field mapping, filtering, and data transformation
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: smoke-json-transform-
+  namespace: argo-workflows
+  labels:
+    homelab-tasks.dev/test: smoke
+    homelab-tasks.dev/task: json_transform
+spec:
+  serviceAccountName: argo-workflow
+  entrypoint: test-json-transform
+  templates:
+    - name: test-json-transform
+      steps:
+        # Test 1: Field mappings
+        - - name: test-mapping
+            templateRef:
+              name: taskkit-base
+              template: run-task
+            arguments:
+              parameters:
+                - name: task-name
+                  value: "json_transform"
+                - name: input-json
+                  value: |
+                    {
+                      "data": {"user": {"name": "Alice", "email": "alice@example.com"}, "status": "active"},
+                      "mappings": {"username": "user.name", "email": "user.email", "is_active": "status"}
+                    }
+
+        # Test 2: Merge with additional data
+        - - name: test-merge
+            templateRef:
+              name: taskkit-base
+              template: run-task
+            arguments:
+              parameters:
+                - name: task-name
+                  value: "json_transform"
+                - name: input-json
+                  value: |
+                    {
+                      "data": {"id": 123, "name": "test"},
+                      "merge_with": {"environment": "e2e", "timestamp": "2024-01-01"}
+                    }
+
+        # Verify results
+        - - name: verify-mapping
+            template: verify-transform-result
+            arguments:
+              parameters:
+                - name: result
+                  value: "{{steps.test-mapping.outputs.parameters.result}}"
+                - name: expected-field
+                  value: "username"
+                - name: test-name
+                  value: "field mapping"
+
+          - name: verify-merge
+            template: verify-transform-result
+            arguments:
+              parameters:
+                - name: result
+                  value: "{{steps.test-merge.outputs.parameters.result}}"
+                - name: expected-field
+                  value: "environment"
+                - name: test-name
+                  value: "merge"
+
+    - name: verify-transform-result
+      inputs:
+        parameters:
+          - name: result
+          - name: expected-field
+          - name: test-name
+      container:
+        image: alpine:3.19
+        command: [sh, -c]
+        args:
+          - |
+            set -e
+            echo "=== Verifying {{inputs.parameters.test-name}} ==="
+            echo "Result: {{inputs.parameters.result}}"
+
+            RESULT='{{inputs.parameters.result}}'
+
+            # Check for result field
+            if echo "$RESULT" | grep -q '"result"'; then
+              echo "✓ result field present"
+            else
+              echo "✗ result field missing"
+              exit 1
+            fi
+
+            # Check for expected field in result
+            if echo "$RESULT" | grep -q '"{{inputs.parameters.expected-field}}"'; then
+              echo "✓ {{inputs.parameters.expected-field}} field present"
+            else
+              echo "✗ {{inputs.parameters.expected-field}} field missing"
+              exit 1
+            fi
+
+            # Check for metadata fields
+            if echo "$RESULT" | grep -q '"input_type"'; then
+              echo "✓ input_type present"
+            else
+              echo "✗ input_type missing"
+              exit 1
+            fi
+
+            echo ""
+            echo "=== {{inputs.parameters.test-name}} PASSED ==="

@@ -28,18 +28,19 @@ FROM python:3.12-slim AS runtime
 
 WORKDIR /app
 
+# Create non-root user for security
+RUN useradd --create-home --shell /bin/bash taskuser
+
 # Copy virtual environment from builder
-COPY --from=builder /app/.venv /app/.venv
-COPY --from=builder /app/src /app/src
-COPY --from=builder /app/schemas /app/schemas
-COPY --from=builder /app/pyproject.toml /app/pyproject.toml
+COPY --from=builder --chown=taskuser:taskuser /app/.venv /app/.venv
+COPY --from=builder --chown=taskuser:taskuser /app/src /app/src
+COPY --from=builder --chown=taskuser:taskuser /app/schemas /app/schemas
+COPY --from=builder --chown=taskuser:taskuser /app/pyproject.toml /app/pyproject.toml
 
 # Add venv to path
 ENV PATH="/app/.venv/bin:$PATH"
 ENV PYTHONPATH="/app/src:$PYTHONPATH"
 
-# Create non-root user for security
-RUN useradd --create-home --shell /bin/bash taskuser
 USER taskuser
 
 # Default entrypoint

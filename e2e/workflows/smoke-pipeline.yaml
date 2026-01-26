@@ -1,0 +1,132 @@
+# Smoke test: Multi-step pipeline
+# Tests task chaining with parameter passing between steps
+# Mirrors the production example-pipeline but uses httpbin
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: smoke-pipeline-
+  namespace: argo-workflows
+  labels:
+    homelab-tasks.dev/test: smoke
+    homelab-tasks.dev/task: pipeline
+spec:
+  serviceAccountName: argo-workflow
+  entrypoint: pipeline
+  templates:
+    - name: pipeline
+      dag:
+        tasks:
+          # Step 1: Fetch data from httpbin
+          - name: fetch-data
+            templateRef:
+              name: taskkit-base
+              template: run-task
+            arguments:
+              parameters:
+                - name: task-name
+                  value: "http_request"
+                - name: input-json
+                  value: |
+                    {"url": "http://httpbin.httpbin.svc.cluster.local/json", "method": "GET", "headers": {}, "timeout": 30}
+
+          # Step 2: Transform the response - extract slideshow title
+          - name: transform-data
+            dependencies: [fetch-data]
+            templateRef:
+              name: taskkit-base
+              template: run-task
+            arguments:
+              parameters:
+                - name: task-name
+                  value: "json_transform"
+                - name: input-json
+                  value: |
+                    {"data": {{tasks.fetch-data.outputs.parameters.result}}, "mappings": {"http_status": "status_code", "request_success": "success"}, "merge_with": {"pipeline": "smoke-pipeline", "step": "transform"}}
+
+          # Step 3: Verify HTTP was successful
+          - name: check-success
+            dependencies: [fetch-data]
+            templateRef:
+              name: taskkit-base
+              template: run-task
+            arguments:
+              parameters:
+                - name: task-name
+                  value: "conditional_check"
+                - name: input-json
+                  value: |
+                    {"value": true, "operator": "eq", "compare_to": true}
+
+          # Step 4: Log final result
+          - name: log-result
+            dependencies: [transform-data, check-success]
+            templateRef:
+              name: taskkit-base
+              template: run-task
+            arguments:
+              parameters:
+                - name: task-name
+                  value: "echo"
+                - name: input-json
+                  value: |
+                    {"message": "Pipeline completed successfully", "metadata": {"transform_result": "passed", "check_result": "passed"}}
+
+          # Step 5: Final verification
+          - name: verify-pipeline
+            dependencies: [log-result]
+            template: verify-pipeline-result
+            arguments:
+              parameters:
+                - name: echo-result
+                  value: "{{tasks.log-result.outputs.parameters.result}}"
+                - name: transform-result
+                  value: "{{tasks.transform-data.outputs.parameters.result}}"
+
+    - name: verify-pipeline-result
+      inputs:
+        parameters:
+          - name: echo-result
+          - name: transform-result
+      container:
+        image: alpine:3.19
+        command: [sh, -c]
+        args:
+          - |
+            set -e
+            echo "=== Pipeline Verification ==="
+            echo ""
+            echo "Echo result: {{inputs.parameters.echo-result}}"
+            echo ""
+            echo "Transform result: {{inputs.parameters.transform-result}}"
+            echo ""
+
+            # Verify echo step
+            ECHO='{{inputs.parameters.echo-result}}'
+            if echo "$ECHO" | grep -q 'Pipeline completed successfully'; then
+              echo "✓ Echo message correct"
+            else
+              echo "✗ Echo message incorrect"
+              exit 1
+            fi
+
+            # Verify transform step
+            TRANSFORM='{{inputs.parameters.transform-result}}'
+            if echo "$TRANSFORM" | grep -q '"pipeline"'; then
+              echo "✓ Pipeline metadata present"
+            else
+              echo "✗ Pipeline metadata missing"
+              exit 1
+            fi
+
+            echo ""
+            echo "========================================="
+            echo "  SMOKE PIPELINE TEST PASSED"
+            echo "========================================="
+            echo ""
+            echo "All steps completed successfully:"
+            echo "  1. fetch-data    ✓"
+            echo "  2. transform-data ✓"
+            echo "  3. check-success  ✓"
+            echo "  4. log-result     ✓"
+            echo ""

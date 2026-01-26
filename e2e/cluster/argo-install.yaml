@@ -1,0 +1,68 @@
+# Argo Workflows installation for E2E testing
+# Minimal configuration - no auth, no UI persistence
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: argo-workflows
+---
+# Install Argo Workflows using the quick-start manifest
+# This is applied via kustomize in the up.sh script
+#
+# The actual Argo installation uses:
+#   kubectl apply -n argo-workflows -f https://github.com/argoproj/argo-workflows/releases/download/v3.5.5/quick-start-minimal.yaml
+#
+# This file contains additional configuration specific to E2E testing:
+
+---
+# ServiceAccount for running workflows
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: argo-workflow
+  namespace: argo-workflows
+---
+# ClusterRole for workflow execution
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: argo-workflow-role
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/log"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims"]
+    verbs: ["get", "list", "watch", "create", "delete"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get"]
+  - apiGroups: ["argoproj.io"]
+    resources: ["workflows", "workflowtemplates", "cronworkflows", "workflowtaskresults"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: argo-workflow-binding
+subjects:
+  - kind: ServiceAccount
+    name: argo-workflow
+    namespace: argo-workflows
+roleRef:
+  kind: ClusterRole
+  name: argo-workflow-role
+  apiGroup: rbac.authorization.k8s.io
+---
+# Minimal configmap for workflow-controller (required)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: workflow-controller-configmap
+  namespace: argo-workflows
+data:
+  # Minimal config - avoid deprecated fields
+  parallelism: "10"

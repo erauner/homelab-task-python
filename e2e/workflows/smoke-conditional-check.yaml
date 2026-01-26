@@ -1,0 +1,150 @@
+# Smoke test: conditional_check task
+# Tests various comparison operators and logic
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: smoke-conditional-check-
+  namespace: argo-workflows
+  labels:
+    homelab-tasks.dev/test: smoke
+    homelab-tasks.dev/task: conditional_check
+spec:
+  serviceAccountName: argo-workflow
+  entrypoint: test-conditional-check
+  templates:
+    - name: test-conditional-check
+      steps:
+        # Test 1: Equality check (should pass)
+        - - name: test-eq-true
+            templateRef:
+              name: taskkit-base
+              template: run-task
+            arguments:
+              parameters:
+                - name: task-name
+                  value: "conditional_check"
+                - name: input-json
+                  value: |
+                    {"value": "hello", "operator": "eq", "compare_to": "hello"}
+
+        # Test 2: Equality check (should fail)
+        - - name: test-eq-false
+            templateRef:
+              name: taskkit-base
+              template: run-task
+            arguments:
+              parameters:
+                - name: task-name
+                  value: "conditional_check"
+                - name: input-json
+                  value: |
+                    {"value": "hello", "operator": "eq", "compare_to": "world"}
+
+        # Test 3: Greater than
+        - - name: test-gt
+            templateRef:
+              name: taskkit-base
+              template: run-task
+            arguments:
+              parameters:
+                - name: task-name
+                  value: "conditional_check"
+                - name: input-json
+                  value: |
+                    {"value": 10, "operator": "gt", "compare_to": 5}
+
+        # Test 4: Contains
+        - - name: test-contains
+            templateRef:
+              name: taskkit-base
+              template: run-task
+            arguments:
+              parameters:
+                - name: task-name
+                  value: "conditional_check"
+                - name: input-json
+                  value: |
+                    {"value": "hello world", "operator": "contains", "compare_to": "world"}
+
+        # Verify all results
+        - - name: verify-eq-true
+            template: verify-condition-result
+            arguments:
+              parameters:
+                - name: result
+                  value: "{{steps.test-eq-true.outputs.parameters.result}}"
+                - name: expected-result
+                  value: "true"
+                - name: test-name
+                  value: "equality (true)"
+
+          - name: verify-eq-false
+            template: verify-condition-result
+            arguments:
+              parameters:
+                - name: result
+                  value: "{{steps.test-eq-false.outputs.parameters.result}}"
+                - name: expected-result
+                  value: "false"
+                - name: test-name
+                  value: "equality (false)"
+
+          - name: verify-gt
+            template: verify-condition-result
+            arguments:
+              parameters:
+                - name: result
+                  value: "{{steps.test-gt.outputs.parameters.result}}"
+                - name: expected-result
+                  value: "true"
+                - name: test-name
+                  value: "greater than"
+
+          - name: verify-contains
+            template: verify-condition-result
+            arguments:
+              parameters:
+                - name: result
+                  value: "{{steps.test-contains.outputs.parameters.result}}"
+                - name: expected-result
+                  value: "true"
+                - name: test-name
+                  value: "contains"
+
+    - name: verify-condition-result
+      inputs:
+        parameters:
+          - name: result
+          - name: expected-result
+          - name: test-name
+      container:
+        image: alpine:3.19
+        command: [sh, -c]
+        args:
+          - |
+            set -e
+            echo "=== Verifying {{inputs.parameters.test-name}} ==="
+            echo "Result: {{inputs.parameters.result}}"
+
+            RESULT='{{inputs.parameters.result}}'
+            EXPECTED="{{inputs.parameters.expected-result}}"
+
+            # Check result field matches expected
+            if echo "$RESULT" | grep -q "\"result\": *$EXPECTED"; then
+              echo "✓ result is $EXPECTED"
+            else
+              echo "✗ expected result to be $EXPECTED"
+              exit 1
+            fi
+
+            # Check metadata fields
+            if echo "$RESULT" | grep -q '"checks_performed"'; then
+              echo "✓ checks_performed present"
+            else
+              echo "✗ checks_performed missing"
+              exit 1
+            fi
+
+            echo ""
+            echo "=== {{inputs.parameters.test-name}} PASSED ==="

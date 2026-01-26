@@ -61,3 +61,7 @@ Thumbs.db
 # Build artifacts
 *.tar.gz
 *.whl
+
+# E2E testing
+e2e/.kube/
+e2e/logs/

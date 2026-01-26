@@ -1,0 +1,110 @@
+# Smoke test: http_request task
+# Uses in-cluster httpbin for deterministic HTTP testing
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: smoke-http-request-
+  namespace: argo-workflows
+  labels:
+    homelab-tasks.dev/test: smoke
+    homelab-tasks.dev/task: http_request
+spec:
+  serviceAccountName: argo-workflow
+  entrypoint: test-http-request
+  templates:
+    - name: test-http-request
+      steps:
+        # Test 1: GET request
+        - - name: test-get
+            templateRef:
+              name: taskkit-base
+              template: run-task
+            arguments:
+              parameters:
+                - name: task-name
+                  value: "http_request"
+                - name: input-json
+                  value: |
+                    {"url": "http://httpbin.httpbin.svc.cluster.local/get?test=e2e", "method": "GET", "headers": {"X-Test": "smoke"}, "timeout": 30}
+
+        # Test 2: POST request with body
+        - - name: test-post
+            templateRef:
+              name: taskkit-base
+              template: run-task
+            arguments:
+              parameters:
+                - name: task-name
+                  value: "http_request"
+                - name: input-json
+                  value: |
+                    {"url": "http://httpbin.httpbin.svc.cluster.local/post", "method": "POST", "headers": {"Content-Type": "application/json"}, "body": {"key": "value", "nested": {"foo": "bar"}}, "timeout": 30}
+
+        # Verify results
+        - - name: verify-get
+            template: verify-http-result
+            arguments:
+              parameters:
+                - name: result
+                  value: "{{steps.test-get.outputs.parameters.result}}"
+                - name: expected-status
+                  value: "200"
+                - name: test-name
+                  value: "GET request"
+
+          - name: verify-post
+            template: verify-http-result
+            arguments:
+              parameters:
+                - name: result
+                  value: "{{steps.test-post.outputs.parameters.result}}"
+                - name: expected-status
+                  value: "200"
+                - name: test-name
+                  value: "POST request"
+
+    - name: verify-http-result
+      inputs:
+        parameters:
+          - name: result
+          - name: expected-status
+          - name: test-name
+      container:
+        image: alpine:3.19
+        command: [sh, -c]
+        args:
+          - |
+            set -e
+            echo "=== Verifying {{inputs.parameters.test-name}} ==="
+            echo "Result: {{inputs.parameters.result}}"
+
+            RESULT='{{inputs.parameters.result}}'
+            EXPECTED_STATUS="{{inputs.parameters.expected-status}}"
+
+            # Check status_code
+            if echo "$RESULT" | grep -q "\"status_code\": *$EXPECTED_STATUS"; then
+              echo "✓ status_code is $EXPECTED_STATUS"
+            else
+              echo "✗ expected status_code $EXPECTED_STATUS"
+              exit 1
+            fi
+
+            # Check success field
+            if echo "$RESULT" | grep -q '"success": *true'; then
+              echo "✓ success is true"
+            else
+              echo "✗ success should be true"
+              exit 1
+            fi
+
+            # Check elapsed_ms exists
+            if echo "$RESULT" | grep -q '"elapsed_ms"'; then
+              echo "✓ elapsed_ms present"
+            else
+              echo "✗ elapsed_ms missing"
+              exit 1
+            fi
+
+            echo ""
+            echo "=== {{inputs.parameters.test-name}} PASSED ==="

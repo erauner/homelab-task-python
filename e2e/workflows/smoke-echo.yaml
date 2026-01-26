@@ -1,0 +1,83 @@
+# Smoke test: echo task
+# Validates basic input/output flow and schema validation
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: smoke-echo-
+  namespace: argo-workflows
+  labels:
+    homelab-tasks.dev/test: smoke
+    homelab-tasks.dev/task: echo
+spec:
+  serviceAccountName: argo-workflow
+  entrypoint: test-echo
+  templates:
+    - name: test-echo
+      steps:
+        - - name: run-echo
+            templateRef:
+              name: taskkit-base
+              template: run-task
+            arguments:
+              parameters:
+                - name: task-name
+                  value: "echo"
+                - name: input-json
+                  value: |
+                    {"message": "E2E smoke test", "metadata": {"test": "smoke-echo", "timestamp": "2024-01-01T00:00:00Z"}}
+        - - name: verify-output
+            template: verify-result
+            arguments:
+              parameters:
+                - name: result
+                  value: "{{steps.run-echo.outputs.parameters.result}}"
+
+    - name: verify-result
+      inputs:
+        parameters:
+          - name: result
+      container:
+        image: alpine:3.19
+        command: [sh, -c]
+        args:
+          - |
+            set -e
+            echo "=== Verifying echo output ==="
+            echo "Result: {{inputs.parameters.result}}"
+
+            # Parse and validate using shell (no jq needed)
+            RESULT='{{inputs.parameters.result}}'
+
+            # Check required fields exist
+            if echo "$RESULT" | grep -q '"echoed_message"'; then
+              echo "✓ echoed_message field present"
+            else
+              echo "✗ echoed_message field missing"
+              exit 1
+            fi
+
+            if echo "$RESULT" | grep -q '"timestamp"'; then
+              echo "✓ timestamp field present"
+            else
+              echo "✗ timestamp field missing"
+              exit 1
+            fi
+
+            if echo "$RESULT" | grep -q '"metadata"'; then
+              echo "✓ metadata field present"
+            else
+              echo "✗ metadata field missing"
+              exit 1
+            fi
+
+            # Check message content
+            if echo "$RESULT" | grep -q 'E2E smoke test'; then
+              echo "✓ message content correct"
+            else
+              echo "✗ message content incorrect"
+              exit 1
+            fi
+
+            echo ""
+            echo "=== Echo smoke test PASSED ==="
