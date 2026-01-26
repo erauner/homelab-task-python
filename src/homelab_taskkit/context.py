@@ -158,7 +158,9 @@ def extract_context_patch(
     # Validate unset values are strings
     for key in unset_ops:
         if not isinstance(key, str):
-            raise ContextError(f"context_patch.unset values must be strings, got {type(key).__name__}")
+            raise ContextError(
+                f"context_patch.unset values must be strings, got {type(key).__name__}"
+            )
 
     return clean_output, ContextPatch(set=set_ops, unset=unset_ops)
 

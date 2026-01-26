@@ -134,7 +134,9 @@ def run_task(
     ctx_out_path = Path(context_output_path) if context_output_path else Path(DEFAULT_CONTEXT_OUT)
 
     # Resolve messages/fanout paths
-    msgs_out_path = Path(messages_output_path) if messages_output_path else Path(DEFAULT_MESSAGES_OUT)
+    msgs_out_path = (
+        Path(messages_output_path) if messages_output_path else Path(DEFAULT_MESSAGES_OUT)
+    )
     fanout_out_path = Path(fanout_output_path) if fanout_output_path else Path(DEFAULT_FANOUT_OUT)
 
     if context_enabled:
@@ -219,7 +221,9 @@ def run_task(
             output_data_raw = task.run(input_data, deps)
     except Exception as e:
         logger.exception(f"Task execution failed: {e}")
-        messages.add_error(f"Task execution failed: {e}", code="TASK_EXECUTION_ERROR", source="runner")
+        messages.add_error(
+            f"Task execution failed: {e}", code="TASK_EXECUTION_ERROR", source="runner"
+        )
         _write_artifacts_on_error(messages_enabled, msgs_out_path, messages)
         return EXIT_RUNTIME_ERROR
 
@@ -291,7 +295,9 @@ def run_task(
         logger.info(f"Output written to: {output_path}")
     except Exception as e:
         logger.error(f"Failed to write output: {e}")
-        messages.add_error(f"Failed to write output: {e}", code="OUTPUT_WRITE_ERROR", source="runner")
+        messages.add_error(
+            f"Failed to write output: {e}", code="OUTPUT_WRITE_ERROR", source="runner"
+        )
         _write_artifacts_on_error(messages_enabled, msgs_out_path, messages)
         return EXIT_RUNTIME_ERROR
 
@@ -316,7 +322,9 @@ def run_task(
     if messages_enabled:
         try:
             write_messages(msgs_out_path, messages)
-            logger.info(f"Messages written to: {msgs_out_path} ({len(messages.messages)} message(s))")
+            logger.info(
+                f"Messages written to: {msgs_out_path} ({len(messages.messages)} message(s))"
+            )
         except Exception as e:
             logger.warning(f"Failed to write messages artifact: {e}")
             # Don't fail the task for artifact write errors

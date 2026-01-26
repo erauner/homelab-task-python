@@ -67,10 +67,14 @@ class TestLoadContext:
 
     def test_loads_full_context_format(self, tmp_path: Path) -> None:
         ctx_file = tmp_path / "context.json"
-        ctx_file.write_text(json.dumps({
-            "version": "taskkit-context/v1",
-            "vars": {"pipeline.run_id": "abc123"},
-        }))
+        ctx_file.write_text(
+            json.dumps(
+                {
+                    "version": "taskkit-context/v1",
+                    "vars": {"pipeline.run_id": "abc123"},
+                }
+            )
+        )
 
         ctx = load_context(ctx_file)
         assert ctx.version == "taskkit-context/v1"
@@ -78,9 +82,13 @@ class TestLoadContext:
 
     def test_loads_legacy_format_as_vars(self, tmp_path: Path) -> None:
         ctx_file = tmp_path / "context.json"
-        ctx_file.write_text(json.dumps({
-            "some_key": "some_value",
-        }))
+        ctx_file.write_text(
+            json.dumps(
+                {
+                    "some_key": "some_value",
+                }
+            )
+        )
 
         ctx = load_context(ctx_file)
         assert ctx.version == CONTEXT_VERSION

@@ -75,7 +75,9 @@ class TaskkitMessage:
         return result
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any], *, default_source: str | None = None) -> TaskkitMessage:
+    def from_dict(
+        cls, data: dict[str, Any], *, default_source: str | None = None
+    ) -> TaskkitMessage:
         """Create from dictionary.
 
         Args:
