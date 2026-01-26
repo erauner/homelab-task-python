@@ -108,10 +108,10 @@ pipeline {
                     sh '''
                         export PATH="$HOME/.local/bin:$PATH"
                         echo "=== Running ruff linter ==="
-                        uv run ruff check src/ tests/ || true
+                        uv run ruff check src/ tests/
 
                         echo "=== Running ruff formatter check ==="
-                        uv run ruff format --check src/ tests/ || true
+                        uv run ruff format --check src/ tests/
                     '''
                 }
             }
@@ -123,7 +123,7 @@ pipeline {
                     sh '''
                         export PATH="$HOME/.local/bin:$PATH"
                         echo "=== Running tests ==="
-                        uv run pytest tests/ -v --tb=short || echo "No tests yet"
+                        uv run pytest tests/ -v --tb=short
                     '''
                 }
             }

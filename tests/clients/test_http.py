@@ -20,6 +20,7 @@ class TestHTTPResponse:
             body='{"ok": true}',
             json={"ok": True},
             headers={"content-type": "application/json"},
+            elapsed_ms=10.5,
         )
         assert response.ok is True
 
@@ -29,6 +30,7 @@ class TestHTTPResponse:
             body='{"id": 123}',
             json={"id": 123},
             headers={},
+            elapsed_ms=15.2,
         )
         assert response.ok is True
 
@@ -38,6 +40,7 @@ class TestHTTPResponse:
             body="Not found",
             json=None,
             headers={},
+            elapsed_ms=5.0,
         )
         assert response.ok is False
 
@@ -47,6 +50,7 @@ class TestHTTPResponse:
             body="Internal error",
             json=None,
             headers={},
+            elapsed_ms=100.0,
         )
         assert response.ok is False
 

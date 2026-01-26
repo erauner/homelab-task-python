@@ -157,6 +157,7 @@ class TestSendWebhook:
             body="",
             json=None,
             headers={},
+            elapsed_ms=50.0,
         )
         mock_request.return_value = mock_response
 
@@ -179,6 +180,7 @@ class TestSendWebhook:
             body='{"message": "Invalid webhook"}',
             json={"message": "Invalid webhook"},
             headers={},
+            elapsed_ms=25.0,
         )
         mock_request.return_value = mock_response
 

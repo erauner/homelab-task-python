@@ -29,6 +29,7 @@ class HTTPResponse:
         body: Response body as string
         json: Parsed JSON body (None if not JSON)
         headers: Response headers as dict
+        elapsed_ms: Request duration in milliseconds
         ok: True if status code is 2xx
     """
 
@@ -36,6 +37,7 @@ class HTTPResponse:
     body: str
     json: dict[str, Any] | list[Any] | None
     headers: dict[str, str]
+    elapsed_ms: float
 
     @property
     def ok(self) -> bool:
@@ -99,14 +101,17 @@ def request(
         with contextlib.suppress(ValueError):
             json_data = response.json()
 
+    elapsed_ms = round(response.elapsed.total_seconds() * 1000, 2)
+
     result = HTTPResponse(
         status_code=response.status_code,
         body=response.text,
         json=json_data,
         headers=dict(response.headers),
+        elapsed_ms=elapsed_ms,
     )
 
-    logger.debug(f"HTTP {method} {log_url} -> {result.status_code}")
+    logger.debug(f"HTTP {method} {log_url} -> {result.status_code} in {elapsed_ms}ms")
     return result
 
 

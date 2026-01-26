@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import MagicMock
 
@@ -26,7 +26,7 @@ def fake_deps() -> Deps:
 
     return Deps(
         http=mock_http,
-        now=lambda: datetime(2024, 1, 15, 12, 0, 0, tzinfo=timezone.utc),
+        now=lambda: datetime(2024, 1, 15, 12, 0, 0, tzinfo=UTC),
         env={"TEST_VAR": "test_value"},
         logger=logging.getLogger("test"),
     )

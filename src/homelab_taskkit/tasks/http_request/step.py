@@ -1,8 +1,8 @@
 """HTTP request task - make HTTP calls to external services.
 
 This task demonstrates:
-- Using injected HTTP client (testable with fake client)
-- Structured error handling
+- Using the shared HTTP client wrapper
+- Consistent error handling via typed exceptions
 - Converting external responses to validated outputs
 """
 
@@ -10,9 +10,9 @@ from __future__ import annotations
 
 from typing import Any
 
-import httpx
-
+from homelab_taskkit.clients.http import request
 from homelab_taskkit.deps import Deps
+from homelab_taskkit.errors import HTTPError, TimeoutError
 from homelab_taskkit.registry import TaskDef, register_task
 
 
@@ -36,7 +36,7 @@ def run(inputs: dict[str, Any], deps: Deps) -> dict[str, Any]:
             - success: True if 2xx status code
 
     Raises:
-        Exception: If the request fails (network error, timeout, etc.)
+        RuntimeError: If the request fails (network error, timeout, etc.)
     """
     url = inputs["url"]
     method = inputs.get("method", "GET").upper()
@@ -47,37 +47,33 @@ def run(inputs: dict[str, Any], deps: Deps) -> dict[str, Any]:
     deps.logger.info(f"Making {method} request to {url}")
 
     try:
-        response = deps.http.request(
-            method=method,
-            url=url,
+        response = request(
+            deps.http,
+            method,
+            url,
             headers=headers,
-            json=body if body and method in ("POST", "PUT", "PATCH") else None,
+            json_body=body if body and method in ("POST", "PUT", "PATCH") else None,
             timeout=timeout,
         )
 
-        # Try to parse response as JSON, fall back to text
-        try:
-            response_body = response.json()
-        except Exception:
-            response_body = response.text
+        # Use JSON body if available, otherwise use text
+        response_body = response.json if response.json is not None else response.body
 
-        elapsed_ms = response.elapsed.total_seconds() * 1000
-
-        deps.logger.info(f"Response: {response.status_code} in {elapsed_ms:.2f}ms")
+        deps.logger.info(f"Response: {response.status_code} in {response.elapsed_ms}ms")
 
         return {
             "status_code": response.status_code,
-            "headers": dict(response.headers),
+            "headers": response.headers,
             "body": response_body,
-            "elapsed_ms": round(elapsed_ms, 2),
-            "success": 200 <= response.status_code < 300,
+            "elapsed_ms": response.elapsed_ms,
+            "success": response.ok,
         }
 
-    except httpx.TimeoutException as e:
+    except TimeoutError as e:
         deps.logger.error(f"Request timed out: {e}")
         raise RuntimeError(f"HTTP request timed out after {timeout}s") from e
 
-    except httpx.RequestError as e:
+    except HTTPError as e:
         deps.logger.error(f"Request failed: {e}")
         raise RuntimeError(f"HTTP request failed: {e}") from e
 

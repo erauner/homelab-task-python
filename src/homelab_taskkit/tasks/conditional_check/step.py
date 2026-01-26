@@ -5,12 +5,14 @@ Supports:
 - Multiple conditions with AND logic (all_conditions)
 - Multiple conditions with OR logic (any_conditions)
 - Various comparison operators
+
+Note: If both all_conditions and any_conditions are provided,
+all_conditions takes precedence (AND logic).
 """
 
 from __future__ import annotations
 
 import re
-from datetime import UTC, datetime
 from typing import Any
 
 from homelab_taskkit.deps import Deps
@@ -33,50 +35,39 @@ def run(inputs: dict[str, Any], deps: Deps) -> dict[str, Any]:
         checks_passed: Number of checks that passed
         details: Details of each check performed
         timestamp: When check was performed
+
+    Precedence: all_conditions > any_conditions > single condition
     """
-    details: list[dict[str, Any]] = []
-    checks_passed = 0
+    # Collect all conditions to evaluate
+    conditions_to_check: list[tuple[dict[str, Any], str]] = []  # (condition, source)
 
-    # Handle single condition
+    # Single condition
     if "value" in inputs and "operator" in inputs:
-        passed = _evaluate_condition(
-            inputs["value"],
-            inputs["operator"],
-            inputs.get("compare_to"),
-            deps,
+        conditions_to_check.append(
+            (
+                {
+                    "value": inputs["value"],
+                    "operator": inputs["operator"],
+                    "compare_to": inputs.get("compare_to"),
+                },
+                "single",
+            )
         )
-        details.append(
-            {
-                "operator": inputs["operator"],
-                "passed": passed,
-                "value_type": type(inputs["value"]).__name__,
-            }
-        )
-        if passed:
-            checks_passed += 1
 
-    # Handle all_conditions (AND logic)
-    all_conditions = inputs.get("all_conditions", [])
-    for cond in all_conditions:
-        passed = _evaluate_condition(
-            cond["value"],
-            cond["operator"],
-            cond.get("compare_to"),
-            deps,
-        )
-        details.append(
-            {
-                "operator": cond["operator"],
-                "passed": passed,
-                "value_type": type(cond["value"]).__name__,
-            }
-        )
-        if passed:
-            checks_passed += 1
+    # Multiple conditions
+    for cond in inputs.get("all_conditions", []):
+        conditions_to_check.append((cond, "all"))
 
-    # Handle any_conditions (OR logic)
-    any_conditions = inputs.get("any_conditions", [])
-    for cond in any_conditions:
+    for cond in inputs.get("any_conditions", []):
+        conditions_to_check.append((cond, "any"))
+
+    # Evaluate each condition ONCE and store results
+    details: list[dict[str, Any]] = []
+    all_results: list[bool] = []  # Results for all_conditions
+    any_results: list[bool] = []  # Results for any_conditions
+    single_result: bool | None = None
+
+    for cond, source in conditions_to_check:
         passed = _evaluate_condition(
             cond["value"],
             cond["operator"],
@@ -88,39 +79,37 @@ def run(inputs: dict[str, Any], deps: Deps) -> dict[str, Any]:
                 "operator": cond["operator"],
                 "passed": passed,
                 "value_type": type(cond["value"]).__name__,
+                "source": source,
             }
         )
-        if passed:
-            checks_passed += 1
+        if source == "all":
+            all_results.append(passed)
+        elif source == "any":
+            any_results.append(passed)
+        else:
+            single_result = passed
 
-    # Determine overall result
+    # Determine overall result from stored values (no re-evaluation!)
     checks_performed = len(details)
+    checks_passed = sum(1 for d in details if d["passed"])
 
     if checks_performed == 0:
-        # No conditions specified
         result = True
         deps.logger.warning("No conditions specified, defaulting to true")
-    elif all_conditions:
-        # AND logic - all must pass
-        all_cond_results = [
-            _evaluate_condition(c["value"], c["operator"], c.get("compare_to"), deps)
-            for c in all_conditions
-        ]
-        result = all(all_cond_results) if all_cond_results else True
-        deps.logger.info(f"AND conditions: {sum(all_cond_results)}/{len(all_cond_results)} passed")
-    elif any_conditions:
+    elif all_results:
+        # AND logic takes precedence - all must pass
+        result = all(all_results)
+        deps.logger.info(f"AND conditions: {sum(all_results)}/{len(all_results)} passed")
+    elif any_results:
         # OR logic - any can pass
-        any_cond_results = [
-            _evaluate_condition(c["value"], c["operator"], c.get("compare_to"), deps)
-            for c in any_conditions
-        ]
-        result = any(any_cond_results) if any_cond_results else True
-        deps.logger.info(f"OR conditions: {sum(any_cond_results)}/{len(any_cond_results)} passed")
+        result = any(any_results)
+        deps.logger.info(f"OR conditions: {sum(any_results)}/{len(any_results)} passed")
     else:
         # Single condition
-        result = details[0]["passed"] if details else True
+        result = single_result if single_result is not None else True
 
-    timestamp = datetime.now(UTC).isoformat()
+    # Use injected time for testability
+    timestamp = deps.now().isoformat()
 
     deps.logger.info(
         f"Conditional check result: {result} ({checks_passed}/{checks_performed} passed)"
