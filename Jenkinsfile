@@ -93,7 +93,7 @@ pipeline {
                         which uv || echo "uv not found in PATH"
 
                         echo "=== Installing dependencies (including dev) ==="
-                        uv sync --dev
+                        uv sync --extra dev
 
                         echo "=== Python version ==="
                         python --version
