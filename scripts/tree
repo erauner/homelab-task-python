@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Tree the repo excluding cache files
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+tree -I '__pycache__|*.pyc|.pytest_cache|.mypy_cache|.ruff_cache|.venv|.git|*.egg-info|dist|build|.uv' "$@"
