@@ -7,7 +7,8 @@ from collections.abc import Callable, Iterator, Mapping
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING
+from types import MappingProxyType
+from typing import TYPE_CHECKING, Any
 
 import httpx
 
@@ -29,12 +30,14 @@ class Deps:
         now: Function returning current UTC time (injectable for testing).
         env: Environment variables mapping.
         logger: Logger instance for task output.
+        context: Read-only context variables from previous steps.
     """
 
     http: httpx.Client
     now: Callable[[], datetime]
     env: Mapping[str, str]
     logger: logging.Logger
+    context: Mapping[str, Any]
 
 
 @contextmanager
@@ -42,6 +45,7 @@ def build_deps(
     env: Mapping[str, str],
     *,
     timeout: float = 30.0,
+    context: Mapping[str, Any] | None = None,
 ) -> Iterator[Deps]:
     """Build dependencies for task execution.
 
@@ -50,6 +54,7 @@ def build_deps(
     Args:
         env: Environment variables mapping (typically os.environ).
         timeout: HTTP client timeout in seconds.
+        context: Read-only context variables (wrapped in MappingProxyType).
 
     Yields:
         A Deps instance with all dependencies wired up.
@@ -57,7 +62,13 @@ def build_deps(
     Example:
         with build_deps(os.environ) as deps:
             result = my_task(inputs, deps)
+
+        with build_deps(os.environ, context={"pipeline.run_id": "abc"}) as deps:
+            result = my_task(inputs, deps)
     """
+    # Wrap context in MappingProxyType for read-only access
+    safe_context: Mapping[str, Any] = MappingProxyType(dict(context or {}))
+
     http_client = httpx.Client(
         timeout=timeout,
         follow_redirects=True,
@@ -69,6 +80,7 @@ def build_deps(
             now=lambda: datetime.now(UTC),
             env=env,
             logger=logging.getLogger("homelab_taskkit.task"),
+            context=safe_context,
         )
     finally:
         http_client.close()

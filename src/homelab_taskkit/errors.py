@@ -96,3 +96,25 @@ class RetryableError(TaskError):
         super().__init__(message, context=context)
         self.attempts = attempts
         self.max_attempts = max_attempts
+
+
+class ContextError(TaskError):
+    """Context loading, parsing, or patch application failed."""
+
+    def __init__(self, message: str, *, path: str | None = None):
+        context: dict[str, Any] = {}
+        if path:
+            context["path"] = path
+        super().__init__(message, context=context)
+        self.path = path
+
+
+class ContextSizeError(ContextError):
+    """Context exceeds maximum allowed size."""
+
+    def __init__(self, message: str, *, size_bytes: int, max_bytes: int):
+        super().__init__(message)
+        self.context["size_bytes"] = size_bytes
+        self.context["max_bytes"] = max_bytes
+        self.size_bytes = size_bytes
+        self.max_bytes = max_bytes
