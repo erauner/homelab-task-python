@@ -61,8 +61,28 @@ def run_cmd(
         "--max-context-bytes",
         help="Maximum context size in bytes (default: 32KB)",
     ),
+    messages_enabled: bool | None = typer.Option(
+        None,
+        "--messages/--no-messages",
+        help="Enable/disable messages artifact (default: auto-detect based on /outputs)",
+    ),
+    messages_out: str | None = typer.Option(
+        None,
+        "--messages-out",
+        help="Path to write messages JSON (default: /outputs/messages.json)",
+    ),
+    fanout_enabled: bool | None = typer.Option(
+        None,
+        "--fanout/--no-fanout",
+        help="Enable/disable fanout artifact (default: auto-detect based on /outputs)",
+    ),
+    fanout_out: str | None = typer.Option(
+        None,
+        "--fanout-out",
+        help="Path to write fanout JSON (default: /outputs/fanout.json)",
+    ),
 ) -> None:
-    """Run a task with input/output validation and optional context artifacts."""
+    """Run a task with input/output validation and optional artifacts."""
     # Import tasks to populate registry
     import homelab_taskkit.tasks  # noqa: F401
 
@@ -75,6 +95,10 @@ def run_cmd(
         context_input_path=context_in,
         context_output_path=context_out,
         max_context_bytes=max_context_bytes,
+        messages_enabled=messages_enabled,
+        messages_output_path=messages_out,
+        fanout_enabled=fanout_enabled,
+        fanout_output_path=fanout_out,
     )
     raise typer.Exit(code=exit_code)
 
