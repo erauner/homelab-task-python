@@ -41,8 +41,28 @@ def run_cmd(
         "-s",
         help="Root directory containing task schemas",
     ),
+    context_enabled: bool | None = typer.Option(
+        None,
+        "--context/--no-context",
+        help="Enable/disable context artifacts (default: auto-detect)",
+    ),
+    context_in: str | None = typer.Option(
+        None,
+        "--context-in",
+        help="Path to input context JSON (default: /inputs/context.json)",
+    ),
+    context_out: str | None = typer.Option(
+        None,
+        "--context-out",
+        help="Path to output context JSON (default: /outputs/context.json)",
+    ),
+    max_context_bytes: int = typer.Option(
+        32 * 1024,
+        "--max-context-bytes",
+        help="Maximum context size in bytes (default: 32KB)",
+    ),
 ) -> None:
-    """Run a task with input/output validation."""
+    """Run a task with input/output validation and optional context artifacts."""
     # Import tasks to populate registry
     import homelab_taskkit.tasks  # noqa: F401
 
@@ -51,6 +71,10 @@ def run_cmd(
         input_source=input_source,
         output_path=output_path,
         schemas_root=schemas_root,
+        context_enabled=context_enabled,
+        context_input_path=context_in,
+        context_output_path=context_out,
+        max_context_bytes=max_context_bytes,
     )
     raise typer.Exit(code=exit_code)
 

@@ -1,5 +1,6 @@
 # E2E version of taskkit-base template
 # Uses local image tag (set by e2e scripts) instead of production registry
+# Supports context artifacts for step-to-step coordination
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: WorkflowTemplate
@@ -22,11 +23,17 @@ spec:
             description: "Name of the task to run (e.g., 'echo', 'http_request')"
           - name: input-json
             description: "JSON input for the task"
+          - name: context-json
+            description: "Context JSON from previous step (optional)"
+            default: '{"version":"taskkit-context/v1","vars":{}}'
       outputs:
         parameters:
           - name: result
             valueFrom:
               path: /outputs/result.json
+          - name: context
+            valueFrom:
+              path: /outputs/context.json
       volumes:
         - name: io
           emptyDir: {}
@@ -37,12 +44,17 @@ spec:
           args:
             - |
               mkdir -p /inputs /outputs
+              # Write task input
               cat > /inputs/input.json << 'INPUTEOF'
               {{inputs.parameters.input-json}}
               INPUTEOF
+              # Write context (from previous step or default empty)
+              cat > /inputs/context.json << 'CTXEOF'
+              {{inputs.parameters.context-json}}
+              CTXEOF
               echo "Task: {{inputs.parameters.task-name}}"
               echo "Input prepared ($(wc -c < /inputs/input.json) bytes)"
-              cat /inputs/input.json
+              echo "Context prepared ($(wc -c < /inputs/context.json) bytes)"
           volumeMounts:
             - name: io
               mountPath: /inputs
@@ -60,6 +72,7 @@ spec:
           - "/inputs/input.json"
           - "--output"
           - "/outputs/result.json"
+          - "--context"
         volumeMounts:
           - name: io
             mountPath: /inputs

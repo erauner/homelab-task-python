@@ -1,0 +1,161 @@
+# Smoke test: Context artifacts
+# Tests context passing between pipeline steps
+# Verifies context-json flows correctly and context output is written
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: smoke-context-
+  namespace: argo-workflows
+  labels:
+    homelab-tasks.dev/test: smoke
+    homelab-tasks.dev/task: context
+spec:
+  serviceAccountName: argo-workflow
+  entrypoint: context-pipeline
+  templates:
+    - name: context-pipeline
+      dag:
+        tasks:
+          # Step 1: First task with initial context
+          - name: step-1-echo
+            templateRef:
+              name: taskkit-base
+              template: run-task
+            arguments:
+              parameters:
+                - name: task-name
+                  value: "echo"
+                - name: input-json
+                  value: |
+                    {"message": "Step 1: Initial step", "metadata": {"step": 1}}
+                - name: context-json
+                  value: |
+                    {"version": "taskkit-context/v1", "vars": {"pipeline.run_id": "smoke-context-test", "pipeline.started_at": "2024-01-01T00:00:00Z"}}
+
+          # Step 2: Receives context from step 1
+          - name: step-2-http
+            dependencies: [step-1-echo]
+            templateRef:
+              name: taskkit-base
+              template: run-task
+            arguments:
+              parameters:
+                - name: task-name
+                  value: "http_request"
+                - name: input-json
+                  value: |
+                    {"url": "http://httpbin.httpbin.svc.cluster.local/get?step=2", "method": "GET", "timeout": 30}
+                - name: context-json
+                  value: "{{tasks.step-1-echo.outputs.parameters.context}}"
+
+          # Step 3: Receives context that flowed through step 2
+          - name: step-3-transform
+            dependencies: [step-2-http]
+            templateRef:
+              name: taskkit-base
+              template: run-task
+            arguments:
+              parameters:
+                - name: task-name
+                  value: "json_transform"
+                - name: input-json
+                  value: |
+                    {"data": {"message": "transform test"}, "merge_with": {"step": 3}}
+                - name: context-json
+                  value: "{{tasks.step-2-http.outputs.parameters.context}}"
+
+          # Step 4: Final step - verify context is still intact
+          - name: step-4-final
+            dependencies: [step-3-transform]
+            templateRef:
+              name: taskkit-base
+              template: run-task
+            arguments:
+              parameters:
+                - name: task-name
+                  value: "echo"
+                - name: input-json
+                  value: |
+                    {"message": "Step 4: Final step with context", "metadata": {"step": 4}}
+                - name: context-json
+                  value: "{{tasks.step-3-transform.outputs.parameters.context}}"
+
+          # Verification step
+          - name: verify-context
+            dependencies: [step-4-final]
+            template: verify-context-flow
+            arguments:
+              parameters:
+                - name: initial-context
+                  value: |
+                    {"version": "taskkit-context/v1", "vars": {"pipeline.run_id": "smoke-context-test", "pipeline.started_at": "2024-01-01T00:00:00Z"}}
+                - name: final-context
+                  value: "{{tasks.step-4-final.outputs.parameters.context}}"
+
+    - name: verify-context-flow
+      inputs:
+        parameters:
+          - name: initial-context
+          - name: final-context
+      container:
+        image: alpine:3.19
+        command: [sh, -c]
+        args:
+          - |
+            set -e
+            echo "=== Context Flow Verification ==="
+            echo ""
+            echo "Initial context:"
+            echo '{{inputs.parameters.initial-context}}'
+            echo ""
+            echo "Final context:"
+            echo '{{inputs.parameters.final-context}}'
+            echo ""
+
+            FINAL='{{inputs.parameters.final-context}}'
+
+            # Verify context version is preserved
+            if echo "$FINAL" | grep -q '"version"'; then
+              echo "✓ Context version present"
+            else
+              echo "✗ Context version missing"
+              exit 1
+            fi
+
+            # Verify vars object exists
+            if echo "$FINAL" | grep -q '"vars"'; then
+              echo "✓ Context vars present"
+            else
+              echo "✗ Context vars missing"
+              exit 1
+            fi
+
+            # Verify initial context values are preserved
+            if echo "$FINAL" | grep -q 'pipeline.run_id'; then
+              echo "✓ pipeline.run_id preserved through 4 steps"
+            else
+              echo "✗ pipeline.run_id was lost"
+              exit 1
+            fi
+
+            if echo "$FINAL" | grep -q 'smoke-context-test'; then
+              echo "✓ pipeline.run_id value correct"
+            else
+              echo "✗ pipeline.run_id value incorrect"
+              exit 1
+            fi
+
+            echo ""
+            echo "========================================="
+            echo "  SMOKE CONTEXT TEST PASSED"
+            echo "========================================="
+            echo ""
+            echo "Context successfully flowed through:"
+            echo "  1. step-1-echo      ✓"
+            echo "  2. step-2-http      ✓"
+            echo "  3. step-3-transform ✓"
+            echo "  4. step-4-final     ✓"
+            echo ""
+            echo "Context artifact infrastructure is working!"
+            echo ""

@@ -94,6 +94,7 @@ case "$TESTS" in
         run_test "$E2E_DIR/workflows/smoke-json-transform.yaml"
         run_test "$E2E_DIR/workflows/smoke-conditional-check.yaml"
         run_test "$E2E_DIR/workflows/smoke-pipeline.yaml"
+        run_test "$E2E_DIR/workflows/smoke-context.yaml"
         ;;
     echo)
         run_test "$E2E_DIR/workflows/smoke-echo.yaml"
@@ -110,9 +111,12 @@ case "$TESTS" in
     pipeline)
         run_test "$E2E_DIR/workflows/smoke-pipeline.yaml"
         ;;
+    context)
+        run_test "$E2E_DIR/workflows/smoke-context.yaml"
+        ;;
     *)
         echo "Unknown test: $TESTS"
-        echo "Available: all, echo, http-request, json-transform, conditional-check, pipeline"
+        echo "Available: all, echo, http-request, json-transform, conditional-check, pipeline, context"
         exit 1
         ;;
 esac
