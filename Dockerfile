@@ -19,6 +19,7 @@ RUN uv venv /app/.venv && \
 # Copy source code
 COPY src/ src/
 COPY schemas/ schemas/
+COPY workflows/ workflows/
 
 # Install the package
 RUN uv pip install --python /app/.venv/bin/python -e .
@@ -36,6 +37,7 @@ COPY --from=builder --chown=taskuser:taskuser /app/.venv /app/.venv
 COPY --from=builder --chown=taskuser:taskuser /app/src /app/src
 COPY --from=builder --chown=taskuser:taskuser /app/schemas /app/schemas
 COPY --from=builder --chown=taskuser:taskuser /app/pyproject.toml /app/pyproject.toml
+COPY --from=builder --chown=taskuser:taskuser /app/workflows /app/workflows
 
 # Add venv to path
 ENV PATH="/app/.venv/bin:$PATH"
