@@ -190,9 +190,7 @@ class WorkflowDefinition(BaseModel):
             Non-finalize steps in topological order.
         """
         return [
-            step
-            for step in self.get_execution_order()
-            if step.template != StepTemplate.FINALIZE
+            step for step in self.get_execution_order() if step.template != StepTemplate.FINALIZE
         ]
 
     def get_finalize_steps(self) -> list[WorkflowStep]:
@@ -202,9 +200,7 @@ class WorkflowDefinition(BaseModel):
             Finalize steps in topological order.
         """
         return [
-            step
-            for step in self.get_execution_order()
-            if step.template == StepTemplate.FINALIZE
+            step for step in self.get_execution_order() if step.template == StepTemplate.FINALIZE
         ]
 
     def validate_dependencies(self) -> list[str]:
@@ -219,8 +215,6 @@ class WorkflowDefinition(BaseModel):
         for step in self.steps:
             for dep in step.depends:
                 if dep not in step_names:
-                    errors.append(
-                        f"Step '{step.name}' depends on unknown step '{dep}'"
-                    )
+                    errors.append(f"Step '{step.name}' depends on unknown step '{dep}'")
 
         return errors

@@ -25,6 +25,10 @@ Example workflow YAML:
     timeout_seconds: 3600
 """
 
+from homelab_taskkit.workflow.local_runner import (
+    LocalRunner,
+    WorkflowExecutionResult,
+)
 from homelab_taskkit.workflow.models import (
     Message,
     Severity,
@@ -39,10 +43,6 @@ from homelab_taskkit.workflow.registry import (
     get_step,
     list_steps,
     register_step,
-)
-from homelab_taskkit.workflow.local_runner import (
-    LocalRunner,
-    WorkflowExecutionResult,
 )
 from homelab_taskkit.workflow.workflow import (
     StepTemplate,

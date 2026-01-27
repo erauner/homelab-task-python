@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import logging
 from pathlib import Path
 
@@ -222,10 +223,8 @@ def workflow_run_cmd(
     import homelab_taskkit.tasks  # noqa: F401
 
     # Also import any workflow steps
-    try:
+    with contextlib.suppress(ImportError):
         import homelab_taskkit.steps  # noqa: F401
-    except ImportError:
-        pass  # steps package not yet created
 
     # Configure logging
     log_level = logging.DEBUG if verbose else logging.INFO
@@ -290,10 +289,8 @@ def workflow_validate_cmd(
     # Import step handlers to populate registry
     import homelab_taskkit.tasks  # noqa: F401
 
-    try:
+    with contextlib.suppress(ImportError):
         import homelab_taskkit.steps  # noqa: F401
-    except ImportError:
-        pass
 
     from homelab_taskkit.workflow import LocalRunner
 
@@ -329,10 +326,8 @@ def workflow_list_steps_cmd() -> None:
     # Import step handlers to populate registry
     import homelab_taskkit.tasks  # noqa: F401
 
-    try:
+    with contextlib.suppress(ImportError):
         import homelab_taskkit.steps  # noqa: F401
-    except ImportError:
-        pass
 
     from homelab_taskkit.workflow import list_steps
 

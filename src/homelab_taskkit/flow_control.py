@@ -159,9 +159,7 @@ def extract_flow_control(
     if isinstance(flow_data, dict):
         return clean_output, TaskkitFlowControl.from_dict(flow_data)
 
-    raise ValueError(
-        f"{flow_control_key} must be an object, got {type(flow_data).__name__}"
-    )
+    raise ValueError(f"{flow_control_key} must be an object, got {type(flow_data).__name__}")
 
 
 def write_flow_control(path: str | Path, flow_control: TaskkitFlowControl) -> None:

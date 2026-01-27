@@ -2,21 +2,17 @@
 
 from __future__ import annotations
 
-import json
 import logging
 import socket
-import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import httpx
 import pytest
 
-from homelab_taskkit.workflow.models import StepDeps, StepInput, StepResult
-
 # Import step handlers to register them
 import homelab_taskkit.steps  # noqa: F401
-
+from homelab_taskkit.workflow.models import StepDeps, StepInput
 from homelab_taskkit.workflow.registry import get_step, has_step
 
 

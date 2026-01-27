@@ -32,7 +32,7 @@ from homelab_taskkit.workflow.models import (
     StepInput,
     StepResult,
 )
-from homelab_taskkit.workflow.registry import StepNotFoundError, get_step, has_step
+from homelab_taskkit.workflow.registry import get_step, has_step
 from homelab_taskkit.workflow.workflow import (
     StepTemplate,
     WorkflowDefinition,
@@ -303,8 +303,10 @@ class LocalRunner:
 
                 # Log messages
                 for msg in result.messages:
-                    level = logging.ERROR if msg.severity == Severity.ERROR else (
-                        logging.WARNING if msg.severity == Severity.WARNING else logging.INFO
+                    level = (
+                        logging.ERROR
+                        if msg.severity == Severity.ERROR
+                        else (logging.WARNING if msg.severity == Severity.WARNING else logging.INFO)
                     )
                     logger.log(level, f"[{step.name}] {msg.text}")
 
@@ -384,9 +386,7 @@ class LocalRunner:
                 }
 
             # Determine final result
-            if self._failed_steps:
-                execution.result = "Failed"
-            elif self._flow_control.get("mark_failed"):
+            if self._failed_steps or self._flow_control.get("mark_failed"):
                 execution.result = "Failed"
             else:
                 execution.result = "Succeeded"
@@ -398,9 +398,7 @@ class LocalRunner:
 
         finally:
             execution.end_time = datetime.now(UTC)
-            execution.duration_seconds = (
-                execution.end_time - execution.start_time
-            ).total_seconds()
+            execution.duration_seconds = (execution.end_time - execution.start_time).total_seconds()
 
             # Save execution result
             result_path = self.workdir / "execution-result.json"

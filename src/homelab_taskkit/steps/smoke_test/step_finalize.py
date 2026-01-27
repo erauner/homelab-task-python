@@ -63,8 +63,7 @@ def handle_finalize(step_input: StepInput, deps: StepDeps) -> StepResult:
         )
     else:
         result.add_warning(
-            f"Smoke test completed with failures: "
-            f"{passed_checks} passed, {failed_checks} failed",
+            f"Smoke test completed with failures: {passed_checks} passed, {failed_checks} failed",
             system="smoke-test",
         )
 

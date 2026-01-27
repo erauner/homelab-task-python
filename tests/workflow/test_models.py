@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 
 import httpx
+import pydantic
 import pytest
 
 from homelab_taskkit.workflow.models import (
@@ -202,7 +203,7 @@ class TestStepDeps:
         """StepDeps requires an httpx.Client instance."""
         test_logger = logging.getLogger("test")
 
-        with pytest.raises(Exception):  # Pydantic validation error
+        with pytest.raises(pydantic.ValidationError):
             StepDeps(
                 http="not-a-client",
                 logger=test_logger,

@@ -374,7 +374,9 @@ def run_task(
     if flow_control_enabled:
         try:
             write_flow_control(flow_ctrl_out_path, flow_control)
-            logger.info(f"Flow control written to: {flow_ctrl_out_path} ({flow_control.count} var(s))")
+            logger.info(
+                f"Flow control written to: {flow_ctrl_out_path} ({flow_control.count} var(s))"
+            )
         except Exception as e:
             logger.warning(f"Failed to write flow_control artifact: {e}")
             # Don't fail the task for artifact write errors

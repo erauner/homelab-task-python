@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -48,9 +47,7 @@ def simple_params_json() -> str:
 @pytest.fixture
 def workflow_file(simple_workflow_yaml: str) -> Path:
     """Create temporary workflow file."""
-    with tempfile.NamedTemporaryFile(
-        mode="w", suffix=".yaml", delete=False
-    ) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
         f.write(simple_workflow_yaml)
         f.flush()
         yield Path(f.name)
@@ -60,9 +57,7 @@ def workflow_file(simple_workflow_yaml: str) -> Path:
 @pytest.fixture
 def params_file(simple_params_json: str) -> Path:
     """Create temporary params file."""
-    with tempfile.NamedTemporaryFile(
-        mode="w", suffix=".json", delete=False
-    ) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
         f.write(simple_params_json)
         f.flush()
         yield Path(f.name)
@@ -183,7 +178,7 @@ class TestLocalRunnerInit:
     ):
         """Runner creates workdir if it doesn't exist."""
         workdir = temp_workdir / "nested" / "workdir"
-        runner = LocalRunner(
+        _runner = LocalRunner(
             workflow_path=workflow_file,
             workdir=workdir,
         )
@@ -212,9 +207,7 @@ steps:
     depends:
       - nonexistent
 """
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".yaml", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             f.write(invalid_yaml)
             f.flush()
 
@@ -238,9 +231,7 @@ class TestLocalRunnerValidate:
         errors = runner.validate()
         assert errors == []
 
-    def test_validate_missing_handler(
-        self, workflow_file: Path, temp_workdir: Path
-    ):
+    def test_validate_missing_handler(self, workflow_file: Path, temp_workdir: Path):
         """Validate catches missing handlers."""
         # Don't register handlers
         runner = LocalRunner.__new__(LocalRunner)
@@ -341,9 +332,7 @@ steps:
 
 default_retries: 0
 """
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".yaml", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             f.write(failing_yaml)
             f.flush()
 
@@ -435,9 +424,7 @@ steps:
     depends:
       - skipped
 """
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".yaml", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             f.write(yaml_content)
             f.flush()
 

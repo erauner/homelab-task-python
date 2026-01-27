@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-import os
 from datetime import UTC, datetime
 
 import pytest
 
-from homelab_taskkit.deps import Deps, TaskkitEnv, build_deps
+from homelab_taskkit.deps import TaskkitEnv, build_deps
 
 
 class TestTaskkitEnv:
@@ -101,10 +100,9 @@ class TestBuildDeps:
         env: dict[str, str] = {}
         context = {"key": "value"}
 
-        with build_deps(env, context=context) as deps:
+        with build_deps(env, context=context) as deps, pytest.raises(TypeError):
             # Should raise TypeError when trying to modify
-            with pytest.raises(TypeError):
-                deps.context["key"] = "new_value"  # type: ignore[index]
+            deps.context["key"] = "new_value"  # type: ignore[index]
 
     def test_creates_taskkit_env(self) -> None:
         env = {
@@ -139,8 +137,8 @@ class TestBuildDeps:
             http = deps.http
 
         # After context exits, client should be closed
-        # (httpx raises error if we try to use a closed client)
-        with pytest.raises(Exception):
+        # (httpx raises RuntimeError if we try to use a closed client)
+        with pytest.raises(RuntimeError):
             http.get("https://example.com")
 
     def test_custom_timeout(self) -> None:

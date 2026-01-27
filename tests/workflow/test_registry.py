@@ -9,9 +9,9 @@ import pytest
 
 from homelab_taskkit.workflow.models import StepDeps, StepInput, StepResult
 from homelab_taskkit.workflow.registry import (
+    _STEP_REGISTRY,
     StepAlreadyRegisteredError,
     StepNotFoundError,
-    _STEP_REGISTRY,
     get_step,
     has_step,
     list_steps,
