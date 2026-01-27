@@ -1,0 +1,22 @@
+{
+  "targets": [
+    {
+      "name": "google-dns",
+      "dns_host": "dns.google",
+      "http_url": "https://dns.google/resolve?name=example.com",
+      "expected_status": 200
+    },
+    {
+      "name": "cloudflare-dns",
+      "dns_host": "one.one.one.one",
+      "http_url": "https://cloudflare-dns.com/dns-query?name=example.com&type=A",
+      "expected_status": 200
+    },
+    {
+      "name": "github",
+      "dns_host": "github.com",
+      "http_url": "https://github.com",
+      "expected_status": 200
+    }
+  ]
+}

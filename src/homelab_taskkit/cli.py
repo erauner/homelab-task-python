@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 import typer
@@ -16,6 +17,13 @@ app = typer.Typer(
     help="Run homelab tasks with schema validation.",
     no_args_is_help=True,
 )
+
+workflow_app = typer.Typer(
+    name="workflow",
+    help="Workflow execution commands.",
+    no_args_is_help=True,
+)
+app.add_typer(workflow_app, name="workflow")
 
 console = Console()
 
@@ -172,6 +180,175 @@ def schema_cmd(
     except FileNotFoundError:
         console.print(f"[red]Error:[/red] Schema not found: {schema_path}")
         raise typer.Exit(code=1) from None
+
+
+@workflow_app.command("run")
+def workflow_run_cmd(
+    workflow_path: str = typer.Option(
+        ...,
+        "--workflow",
+        "-w",
+        help="Path to workflow YAML file",
+    ),
+    params_path: str | None = typer.Option(
+        None,
+        "--params",
+        "-p",
+        help="Path to params JSON file",
+    ),
+    workdir: str | None = typer.Option(
+        None,
+        "--workdir",
+        help="Working directory for execution (default: auto-generated)",
+    ),
+    task_id: str | None = typer.Option(
+        None,
+        "--task-id",
+        help="Task ID for the run (default: auto-generated)",
+    ),
+    verbose: bool = typer.Option(
+        False,
+        "--verbose",
+        "-v",
+        help="Enable verbose logging",
+    ),
+) -> None:
+    """Run a workflow locally for testing.
+
+    Example:
+        task-run workflow run -w workflows/smoke_test.yaml -p params.json --workdir ./test-run
+    """
+    # Import step handlers to populate registry
+    import homelab_taskkit.tasks  # noqa: F401
+
+    # Also import any workflow steps
+    try:
+        import homelab_taskkit.steps  # noqa: F401
+    except ImportError:
+        pass  # steps package not yet created
+
+    # Configure logging
+    log_level = logging.DEBUG if verbose else logging.INFO
+    logging.basicConfig(
+        level=log_level,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+
+    from homelab_taskkit.workflow import LocalRunner
+
+    try:
+        runner = LocalRunner(
+            workflow_path=workflow_path,
+            params_path=params_path,
+            workdir=workdir,
+            task_id=task_id,
+        )
+
+        console.print(f"[cyan]Workflow:[/cyan] {runner.workflow.name}")
+        console.print(f"[cyan]Task ID:[/cyan] {runner.task_id}")
+        console.print(f"[cyan]Workdir:[/cyan] {runner.workdir}")
+        console.print()
+
+        result = runner.run()
+
+        if result == "Succeeded":
+            console.print(f"\n[green]✓ Workflow {result}[/green]")
+            raise typer.Exit(code=0)
+        elif result == "Failed":
+            console.print(f"\n[red]✗ Workflow {result}[/red]")
+            raise typer.Exit(code=1)
+        else:
+            console.print(f"\n[red]✗ Workflow {result}[/red]")
+            raise typer.Exit(code=2)
+
+    except FileNotFoundError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(code=1) from None
+    except ValueError as e:
+        console.print(f"[red]Validation Error:[/red] {e}")
+        raise typer.Exit(code=1) from None
+
+
+@workflow_app.command("validate")
+def workflow_validate_cmd(
+    workflow_path: str = typer.Option(
+        ...,
+        "--workflow",
+        "-w",
+        help="Path to workflow YAML file",
+    ),
+) -> None:
+    """Validate a workflow definition without executing it.
+
+    Checks:
+    - YAML syntax
+    - All handlers are registered
+    - Dependencies are valid
+    - No circular dependencies
+    """
+    # Import step handlers to populate registry
+    import homelab_taskkit.tasks  # noqa: F401
+
+    try:
+        import homelab_taskkit.steps  # noqa: F401
+    except ImportError:
+        pass
+
+    from homelab_taskkit.workflow import LocalRunner
+
+    try:
+        runner = LocalRunner(
+            workflow_path=workflow_path,
+            params_path=None,
+            workdir=None,
+        )
+
+        errors = runner.validate()
+
+        if errors:
+            console.print("[red]Validation failed:[/red]")
+            for error in errors:
+                console.print(f"  • {error}")
+            raise typer.Exit(code=1)
+        else:
+            console.print(f"[green]✓ Workflow '{runner.workflow.name}' is valid[/green]")
+            raise typer.Exit(code=0)
+
+    except FileNotFoundError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(code=1) from None
+    except ValueError as e:
+        console.print(f"[red]Validation Error:[/red] {e}")
+        raise typer.Exit(code=1) from None
+
+
+@workflow_app.command("list-steps")
+def workflow_list_steps_cmd() -> None:
+    """List all registered step handlers."""
+    # Import step handlers to populate registry
+    import homelab_taskkit.tasks  # noqa: F401
+
+    try:
+        import homelab_taskkit.steps  # noqa: F401
+    except ImportError:
+        pass
+
+    from homelab_taskkit.workflow import list_steps
+
+    steps = list_steps()
+
+    if not steps:
+        console.print("[yellow]No step handlers registered.[/yellow]")
+        return
+
+    table = Table(title="Registered Step Handlers")
+    table.add_column("Handler Name", style="cyan", no_wrap=True)
+
+    for step_name in steps:
+        table.add_row(step_name)
+
+    console.print(table)
 
 
 def main() -> None:

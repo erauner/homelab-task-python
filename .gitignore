@@ -65,3 +65,7 @@ Thumbs.db
 # E2E testing
 e2e/.kube/
 e2e/logs/
+
+# Workflow test outputs
+test-run/
+workflow-runs/

@@ -1,0 +1,46 @@
+# Infrastructure Smoke Test Workflow
+#
+# This workflow verifies that critical infrastructure services are healthy.
+# It checks DNS resolution and HTTP endpoint health for configured targets.
+#
+# Usage:
+#   task-run workflow run -w workflows/infrastructure_smoke_test.yaml \
+#     -p workflows/smoke_test_params.json \
+#     --workdir ./test-runs/smoke
+#
+# The workflow follows this execution order:
+#   1. init - Validate parameters and initialize context
+#   2. check-dns - Verify DNS resolution for all targets
+#   3. check-http - Verify HTTP endpoint health
+#   4. finalize - Summarize results (always runs, even on failure)
+
+name: InfrastructureSmokeTest
+platform: homelab
+handler_prefix: smoke-test
+context: local
+
+steps:
+  - name: init
+    template: init
+    # No dependencies - runs first
+
+  - name: check-dns
+    template: action
+    depends:
+      - init
+    # Runs after init
+
+  - name: check-http
+    template: action
+    depends:
+      - check-dns
+    # Runs after DNS checks (could depend on init for parallel execution)
+
+  - name: finalize
+    template: finalize
+    depends:
+      - check-http
+    # Always runs last, even if previous steps failed
+
+default_retries: 2
+timeout_seconds: 300
