@@ -151,7 +151,7 @@ pipeline {
                     env.COMMIT = homelab.gitShortCommit()
                     echo "Building image version: ${env.VERSION} (commit: ${env.COMMIT})"
 
-                    // Build and push using shared library
+                    // Build and push using shared library (versioned tag)
                     homelab.homelabBuild([
                         image: env.IMAGE_NAME,
                         version: env.VERSION,
@@ -159,6 +159,22 @@ pipeline {
                         dockerfile: 'Dockerfile',
                         context: '.'
                     ])
+                }
+            }
+        }
+
+        stage('Push Latest Tag') {
+            steps {
+                container('kaniko') {
+                    sh """
+                        /kaniko/executor \
+                            --dockerfile=Dockerfile \
+                            --context=dir://. \
+                            --destination=${IMAGE_NAME}:latest \
+                            --cache=true \
+                            --cache-repo=${IMAGE_NAME}/cache \
+                            --custom-platform=linux/amd64
+                    """
                 }
             }
         }
