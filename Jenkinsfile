@@ -178,32 +178,6 @@ pipeline {
                 }
             }
         }
-
-        stage('Create Release Tag') {
-            steps {
-                container('python') {
-                    withCredentials([usernamePassword(
-                        credentialsId: 'github-app',
-                        usernameVariable: 'GIT_USER',
-                        passwordVariable: 'GIT_TOKEN'
-                    )]) {
-                        script {
-                            // Install required tools
-                            sh 'apt-get update && apt-get install -y curl jq git'
-
-                            // Use shared library for release creation
-                            def result = homelab.createPreRelease([
-                                repo: 'erauner/homelab-task-python',
-                                imageName: env.IMAGE_NAME,
-                                imageTag: env.VERSION
-                            ])
-                            env.NEW_VERSION = result.version
-                            env.RELEASE_ID = result.releaseId
-                        }
-                    }
-                }
-            }
-        }
     }
 
     post {
@@ -212,15 +186,9 @@ pipeline {
             ✅ Build successful!
 
             Docker Image: ${env.IMAGE_NAME}:${env.VERSION}
-            Release Tag: ${env.NEW_VERSION ?: 'N/A'}
+            Latest Tag:   ${env.IMAGE_NAME}:latest
 
-            To pull image: docker pull ${env.IMAGE_NAME}:${env.VERSION}
-
-            Usage in Argo Workflow:
-              containers:
-              - name: task
-                image: ${env.IMAGE_NAME}:${env.VERSION}
-                command: ["task-run", "run", "echo", "--input", "/inputs/data.json", "--output", "/outputs/result.json"]
+            To pull: docker pull ${env.IMAGE_NAME}:latest
             """
         }
         failure {
