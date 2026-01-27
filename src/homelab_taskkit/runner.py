@@ -28,6 +28,13 @@ from homelab_taskkit.fanout import (
     extract_fanout,
     write_fanout,
 )
+from homelab_taskkit.flow_control import (
+    DEFAULT_FLOW_CONTROL_OUT,
+    TaskkitFlowControl,
+    empty_flow_control,
+    extract_flow_control,
+    write_flow_control,
+)
 from homelab_taskkit.io import read_input, write_output
 from homelab_taskkit.messages import (
     DEFAULT_MESSAGES_OUT,
@@ -64,6 +71,8 @@ def run_task(
     messages_output_path: str | Path | None = None,
     fanout_enabled: bool | None = None,
     fanout_output_path: str | Path | None = None,
+    flow_control_enabled: bool | None = None,
+    flow_control_output_path: str | Path | None = None,
 ) -> int:
     """Run a task with full validation and optional artifacts.
 
@@ -73,12 +82,13 @@ def run_task(
     3. Loads and validates input against schema
     4. Builds dependencies with context
     5. Executes the task
-    6. Extracts context patch, messages, and fanout from output
+    6. Extracts context patch, messages, fanout, and flow_control from output
     7. Validates output against schema
     8. Writes output to file
     9. Merges and writes context (if enabled)
     10. Writes messages artifact (if enabled)
     11. Writes fanout artifact (if enabled)
+    12. Writes flow_control artifact (if enabled)
 
     Args:
         task_name: Name of the task to run.
@@ -94,6 +104,8 @@ def run_task(
         messages_output_path: Path to write messages JSON (default: /outputs/messages.json).
         fanout_enabled: Enable fanout artifact (None=auto-detect based on /outputs).
         fanout_output_path: Path to write fanout JSON (default: /outputs/fanout.json).
+        flow_control_enabled: Enable flow_control artifact (None=auto-detect based on /outputs).
+        flow_control_output_path: Path to write flow_control JSON (default: /outputs/flow_control.json).
 
     Returns:
         Exit code (0 for success, non-zero for errors).
@@ -122,22 +134,29 @@ def run_task(
     if context_enabled is None:
         context_enabled = inputs_dir_exists and outputs_dir_exists
 
-    # Determine if messages/fanout artifacts are enabled
+    # Determine if messages/fanout/flow_control artifacts are enabled
     # Auto-detect: enable if /outputs directory exists
     if messages_enabled is None:
         messages_enabled = outputs_dir_exists
     if fanout_enabled is None:
         fanout_enabled = outputs_dir_exists
+    if flow_control_enabled is None:
+        flow_control_enabled = outputs_dir_exists
 
     # Resolve context paths
     ctx_in_path = Path(context_input_path) if context_input_path else Path(DEFAULT_CONTEXT_IN)
     ctx_out_path = Path(context_output_path) if context_output_path else Path(DEFAULT_CONTEXT_OUT)
 
-    # Resolve messages/fanout paths
+    # Resolve messages/fanout/flow_control paths
     msgs_out_path = (
         Path(messages_output_path) if messages_output_path else Path(DEFAULT_MESSAGES_OUT)
     )
     fanout_out_path = Path(fanout_output_path) if fanout_output_path else Path(DEFAULT_FANOUT_OUT)
+    flow_ctrl_out_path = (
+        Path(flow_control_output_path)
+        if flow_control_output_path
+        else Path(DEFAULT_FLOW_CONTROL_OUT)
+    )
 
     if context_enabled:
         logger.info(f"Context artifacts enabled (in={ctx_in_path}, out={ctx_out_path})")
@@ -145,10 +164,13 @@ def run_task(
         logger.info(f"Messages artifact enabled (out={msgs_out_path})")
     if fanout_enabled:
         logger.info(f"Fanout artifact enabled (out={fanout_out_path})")
+    if flow_control_enabled:
+        logger.info(f"Flow control artifact enabled (out={flow_ctrl_out_path})")
 
     # Initialize artifact containers
     messages: TaskkitMessages = empty_messages()
     fanout: TaskkitFanout = empty_fanout()
+    flow_control: TaskkitFlowControl = empty_flow_control()
 
     # 1. Resolve task definition
     try:
@@ -261,6 +283,16 @@ def run_task(
         logger.error(f"Invalid fanout structure: {e}")
         messages.add_error(str(e), code="FANOUT_PARSE_ERROR", source="runner")
 
+    # 5c. Extract flow_control from output (if present)
+    try:
+        output_data, extracted_flow_control = extract_flow_control(output_data)
+        if extracted_flow_control is not None:
+            flow_control = extracted_flow_control
+            logger.info(f"Task emitted flow_control with {flow_control.count} var(s)")
+    except ValueError as e:
+        logger.error(f"Invalid flow_control structure: {e}")
+        messages.add_error(str(e), code="FLOW_CONTROL_PARSE_ERROR", source="runner")
+
     # 6. Validate output against schema
     output_schema_path = schemas_root / task.output_schema
     try:
@@ -336,6 +368,15 @@ def run_task(
             logger.info(f"Fanout written to: {fanout_out_path} ({fanout.count} item(s))")
         except Exception as e:
             logger.warning(f"Failed to write fanout artifact: {e}")
+            # Don't fail the task for artifact write errors
+
+    # 11. Write flow_control artifact (if enabled)
+    if flow_control_enabled:
+        try:
+            write_flow_control(flow_ctrl_out_path, flow_control)
+            logger.info(f"Flow control written to: {flow_ctrl_out_path} ({flow_control.count} var(s))")
+        except Exception as e:
+            logger.warning(f"Failed to write flow_control artifact: {e}")
             # Don't fail the task for artifact write errors
 
     logger.info(f"Task {task_name} completed successfully")

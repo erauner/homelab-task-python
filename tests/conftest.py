@@ -9,11 +9,26 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from homelab_taskkit.deps import Deps
+from homelab_taskkit.deps import Deps, TaskkitEnv
 
 
 @pytest.fixture
-def fake_deps() -> Deps:
+def fake_taskkit_env() -> TaskkitEnv:
+    """Create a fake TaskkitEnv for testing."""
+    return TaskkitEnv(
+        task_id="test-task",
+        run_id="test-run-123",
+        step_name="test-step",
+        step_retry=0,
+        total_retries=3,
+        workflow_name="test-workflow",
+        workflow_namespace="default",
+        node_name="test-node",
+    )
+
+
+@pytest.fixture
+def fake_deps(fake_taskkit_env: TaskkitEnv) -> Deps:
     """Create a Deps instance with fake/mock dependencies for testing.
 
     Includes an empty context by default. Use fake_deps_with_context()
@@ -34,11 +49,12 @@ def fake_deps() -> Deps:
         env={"TEST_VAR": "test_value"},
         logger=logging.getLogger("test"),
         context={},  # Empty context by default
+        taskkit=fake_taskkit_env,
     )
 
 
 @pytest.fixture
-def fake_deps_with_context() -> Deps:
+def fake_deps_with_context(fake_taskkit_env: TaskkitEnv) -> Deps:
     """Create a Deps instance with sample context for context-aware testing."""
     mock_http = MagicMock()
     mock_http.request.return_value = MagicMock(
@@ -58,6 +74,7 @@ def fake_deps_with_context() -> Deps:
             "pipeline.run_id": "test-run-123",
             "pipeline.step": 1,
         },
+        taskkit=fake_taskkit_env,
     )
 
 
