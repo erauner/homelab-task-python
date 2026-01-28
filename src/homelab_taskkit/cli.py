@@ -26,6 +26,13 @@ workflow_app = typer.Typer(
 )
 app.add_typer(workflow_app, name="workflow")
 
+step_app = typer.Typer(
+    name="step",
+    help="Step execution commands (for Argo containers).",
+    no_args_is_help=True,
+)
+app.add_typer(step_app, name="step")
+
 console = Console()
 
 
@@ -342,6 +349,78 @@ def workflow_list_steps_cmd() -> None:
 
     for step_name in steps:
         table.add_row(step_name)
+
+    console.print(table)
+
+
+@step_app.command("run")
+def step_run_cmd(
+    verbose: bool = typer.Option(
+        False,
+        "--verbose",
+        "-v",
+        help="Enable verbose/debug logging",
+    ),
+) -> None:
+    """Run a workflow step in Argo container mode.
+
+    This command is designed to be called by Argo Workflows with environment variables
+    set by the WorkflowTemplate. It reads TASKKIT_* environment variables to determine
+    what step to execute.
+
+    Required environment variables:
+        TASKKIT_STEP_NAME: Name of the step to execute
+        TASKKIT_TASK_ID: Unique task/workflow run identifier
+        TASKKIT_WORKFLOW_NAME: Workflow definition name
+        TASKKIT_WORKING_DIR: Working directory for step execution
+        TASKKIT_PARAMS_FILE: Path to params.json
+        TASKKIT_OUTPUT_FILE: Path to write step_output.json
+
+    Optional environment variables:
+        TASKKIT_HANDLER_PREFIX: Prefix for step handler names (e.g., 'smoke-test')
+        TASKKIT_STEP_TEMPLATE: Step template type (init, action, finalize)
+        TASKKIT_STEP_PARAMS: JSON string with step-specific parameters
+        TASKKIT_RETRIES: Current retry attempt (0-based)
+        TASKKIT_TOTAL_RETRIES: Maximum retry attempts
+        TASKKIT_WORKFLOW_RESULT: Workflow result (for finalize steps)
+
+    Example:
+        TASKKIT_STEP_NAME=init TASKKIT_TASK_ID=test-123 ... task-run step run
+    """
+    # Import step handlers to populate registry
+    import homelab_taskkit.tasks  # noqa: F401
+
+    with contextlib.suppress(ImportError):
+        import homelab_taskkit.steps  # noqa: F401
+
+    from homelab_taskkit.workflow import step_runner_main
+
+    exit_code = step_runner_main(debug=verbose)
+    raise typer.Exit(code=exit_code)
+
+
+@step_app.command("env")
+def step_env_cmd() -> None:
+    """Show the expected environment variables for step execution.
+
+    Lists all TASKKIT_* environment variables used by the step runner,
+    their current values (if set), and whether they are required.
+    """
+    from homelab_taskkit.workflow.env import ENV_VARS, REQUIRED_ENV_VARS
+
+    import os
+
+    table = Table(title="TASKKIT Environment Variables")
+    table.add_column("Variable", style="cyan", no_wrap=True)
+    table.add_column("Required", style="yellow")
+    table.add_column("Current Value", style="green")
+
+    for field_name, env_var in sorted(ENV_VARS.items(), key=lambda x: x[1]):
+        required = "Yes" if env_var in REQUIRED_ENV_VARS else "No"
+        value = os.environ.get(env_var, "[not set]")
+        if len(value) > 50:
+            value = value[:47] + "..."
+        table.add_row(env_var, required, value)
 
     console.print(table)
 
